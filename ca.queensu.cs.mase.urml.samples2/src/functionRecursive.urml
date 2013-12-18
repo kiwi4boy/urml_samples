@@ -1,0 +1,20 @@
+model Blah {
+	root capsule blahblah {
+		operation fac(i) {
+			if (i == 0) {
+				return 1
+			} else {
+				return i * fac(i-1)
+			}
+		}
+		stateMachine {
+			state single
+			transition i: initial -> single {
+				action {
+					var y
+					y := fac(4)
+				}
+			}
+		}
+	}
+}

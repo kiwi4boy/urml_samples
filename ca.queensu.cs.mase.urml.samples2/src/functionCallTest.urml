@@ -1,0 +1,15 @@
+model FunctionCall {
+	root capsule functionCall {
+		operation function1() {
+			return 1
+		}
+		stateMachine {
+			state state1
+			transition tran1 : initial -> state1 {
+				action {
+					var var1 := function1()
+				} 
+			}
+		}
+	}
+}

@@ -1,0 +1,244 @@
+/* 
+ * Dining Philosophers Example
+ * October 2012
+ * 
+ * This example illustrates a story involving three philosophers sharing three forks.
+ */
+model DiningPhilosophers {
+/*
+	 * A container capsule that consists of a ring of philosophers and forks.
+	 */
+	root capsule PhilosophersRing {
+		capsuleRef phil0 : Philosopher
+		capsuleRef phil1 : Philosopher
+		capsuleRef phil2 : Philosopher
+		capsuleRef phil3 : Philosopher
+//		capsuleRef phil4 : Philosopher
+		port phil0signer : RingPhilosopherProtocol
+		connector phil0signer and phil0.signer
+		port phil1signer : RingPhilosopherProtocol
+		connector phil1signer and phil1.signer
+		port phil2signer : RingPhilosopherProtocol
+		connector phil2signer and phil2.signer
+		port phil3signer : RingPhilosopherProtocol
+		connector phil3signer and phil3.signer
+//		port phil4signer : RingPhilosopherProtocol
+//		connector phil4signer and phil4.signer
+		capsuleRef fork0 : Fork
+		capsuleRef fork1 : Fork
+		capsuleRef fork2 : Fork
+		capsuleRef fork3 : Fork
+//		capsuleRef fork4 : Fork
+		connector phil0.left and fork3.right
+//		connector fork4.left and phil4.right
+//		connector phil4.left and fork3.right
+		connector fork3.left and phil3.right
+		connector phil3.left and fork2.right
+		connector fork2.left and phil2.right
+		connector phil2.left and fork1.right
+		connector fork1.left and phil1.right
+		connector phil1.left and fork0.right
+		connector fork0.left and phil0.right
+		stateMachine {
+			state one {
+			}
+			transition init : initial -> one {
+				action {
+					send phil0signer.sign(0)
+					send phil1signer.sign(1)
+					send phil2signer.sign(2)
+					send phil3signer.sign(3)
+//					send phil4signer.sign(4)
+				}
+			}
+		}
+	}
+
+	/*
+	 * A fork that is asked to be picked up or put down
+	 */
+	capsule Fork {
+		external port ~left : PhilosopherForkProtocol
+		external port ~right : PhilosopherForkProtocol
+		logPort logger
+		stateMachine {
+			state down {
+			}
+			state up {
+			}
+			transition init : initial -> down {
+			}
+			transition pickUp : down -> up {
+				triggers left.up() //  or left.down() or right.down()
+
+				action {
+					log logger with "down -> up (1)"
+					send left.ack()
+				}
+			}
+			transition pickUp2 : down -> up {
+				triggers right.up()
+				action {
+					log logger with "down -> up (2)"
+					send right.ack()
+				}
+			}
+			transition upup : up -> up {
+				triggers left.up() or right.up()
+				action {
+					log logger with "up -> up"
+				}	
+			}
+			transition putDown : up -> down {
+				triggers left.down() //  or left.up() or right.up()
+
+				action {
+					log logger with "up -> down (1)"
+					send left.ack()
+				}
+			}
+			transition putDown2 : up -> down {
+				triggers right.down()
+				action {
+					log logger with "up -> down (2)"
+					send right.ack()
+				}
+			}
+		}
+	}
+
+	/*
+	 * A philosopher alternates its states in a cycle of (1) thinking, 
+	 * (2) picking up its left fork, (3) picking up its right fork, (4) 
+	 * eating, (5) putting down its left fork, and (6) putting down its
+	 * right fork. 
+	 */
+	capsule Philosopher {
+		attribute id := -1
+		attribute delayTimeout := 300
+		attribute eatTimeout := 1500
+		attribute thinkTimeout := 1500
+		external port left : PhilosopherForkProtocol
+		external port right : PhilosopherForkProtocol
+		external port ~signer : RingPhilosopherProtocol
+		logPort logger
+		timerPort eatTimer
+		timerPort thinkTimer
+		timerPort delayTimer
+		operation isEvenPhil() {
+			return id % 2 == 0
+		}
+		operation setID(id_) {
+			id := id_
+		}
+		stateMachine {
+			state start
+			state delay {
+				entry {
+					inform delayTimer in (delayTimeout * id)
+				}
+			}
+			state think {
+				entry {
+					inform thinkTimer in thinkTimeout
+				}
+			}
+			state pickUpLeft
+			state pickUpRight
+			state eat {
+				entry {
+					inform eatTimer in eatTimeout
+				}
+			}
+			state putDownLeft
+			state putDownRight
+			transition init : initial -> start {
+			}
+			transition delayTrans : start -> delay {
+				triggers signer.sign(num)
+				action {
+					call setID(num)
+				}
+			}
+			transition start1 : delay -> think {
+				triggers timeout delayTimer
+				action {
+//					call setID(num)
+					log logger with "delay -> think"
+				}
+			}
+			transition tryEat1 : think -> pickUpLeft {
+				triggers timeout thinkTimer
+				action {
+					if isEvenPhil() {
+						send right.up()
+						log logger with "(even phil) tryEat1 - picking up right fork"
+					} else  {
+						send left.up()
+						log logger with "(odd phil) tryEat1 - picking up left fork"
+					}
+				}
+			}
+			transition tryEat2 : pickUpLeft -> pickUpRight {
+				triggers left.ack() or right.ack()
+				action {
+					if isEvenPhil() {
+						send left.up()
+						log logger with "(even phil) tryEat2 - picking up left fork"
+					} else  {
+						send right.up()
+						log logger with "(odd phil) tryEat2 - picking up right fork"
+					}
+				}
+			}
+			transition goEat : pickUpRight -> eat {
+				triggers right.ack() or left.ack()
+				action {
+					log logger with "goEat"
+				}
+			}
+			transition tryThink1 : eat -> putDownLeft {
+				triggers timeout eatTimer
+				action {
+					send left.down()
+					log logger with "eat -> putDownLeft"
+				}
+			}
+			transition tryThink2 : putDownLeft -> putDownRight {
+			//				triggers left.ack() or right.ack()
+
+				action {
+//					send right.down()
+					log logger with "putDownLeft -> putDownRight"
+				}
+			}
+			transition goThink : putDownRight -> think {
+			//triggers right.ack() or left.ack()
+
+				action {
+					log logger with "putDownRight -> think"
+				}
+			}
+		}
+	}
+
+	/*
+	 * Communication portal between a philosopher and its forks
+	 */
+	protocol PhilosopherForkProtocol {
+		incoming {
+			ack()
+		}
+		outgoing {
+			up()
+			down()
+		}
+	}
+	protocol RingPhilosopherProtocol {
+		incoming {
+		}
+		outgoing {
+			sign(id)
+		}
+	}
+}

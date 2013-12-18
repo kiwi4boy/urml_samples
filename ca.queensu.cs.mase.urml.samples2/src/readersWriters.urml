@@ -1,0 +1,236 @@
+/*
+ * Readers-Writers Scenario
+ * November 2012
+ * 
+ * In the Readers-Writers problem, a database is shared among two kinds
+ * of processes.
+ * 
+ * (1) Readers.  A reader process may execute a transaction that 
+ *    examines the data in a database.
+ * 
+ * (2) Writers.  A writer process may execute a transaction that
+ *    examines and updates the data in a database.
+ * 
+ * There are a few constraints for this sharing scheme.  First, a
+ * writer process must have exclusive access to the database 
+ * while updating it.  Secondly, any number of readers is allowed
+ * to access concurrently the database when no writer process is
+ * accessing the database. 
+ */
+
+model ReadersWriters {
+	
+	root capsule Top {
+		capsuleRef r0: Reader
+		capsuleRef r1: Reader
+		capsuleRef r2: Reader
+		capsuleRef w0: Writer
+		capsuleRef w1: Writer
+		capsuleRef c: Controller
+		capsuleRef db: Database
+		
+		connector r0.fromController and c.fromR0
+		connector r1.fromController and c.fromR1
+		connector r2.fromController and c.fromR2
+		connector w0.fromController and c.fromW0
+		connector w1.fromController and c.fromW1
+		connector r0.readThings and db.readThings
+		connector r1.readThings and db.readThings
+		connector r2.readThings and db.readThings
+		connector w0.writeThings and db.writeThings
+		connector w1.writeThings and db.writeThings
+	}
+	
+	capsule Controller {
+		attribute readers = 0
+		attribute writing = false
+	
+		external port fromR0: ControllerReader
+		external port fromR1: ControllerReader
+		external port fromR2: ControllerReader
+		external port fromW0: ControllerWriter
+		external port fromW1: ControllerWriter
+		
+		stateMachine {
+			state none
+			state writing
+			state reading
+			
+			transition init: initial -> none {}
+			transition askedWrite: none -> writing {
+				guard {
+					readers == 0 && writing == false
+				}
+				triggers fromW0.acquireWrite() or fromW1.acquireWrite()
+				action {
+					writing := true
+				}
+			}
+			
+			transition askedRead: none -> reading {
+				guard {
+					writing == false
+				}
+				triggers fromR0.acquireRead() or fromR1.acquireRead() or fromR2.acquireRead()
+				action {
+					readers := 1
+				}
+			}
+			
+			transition multipleAskedReader: reading -> reading {
+				triggers fromR0.acquireRead() or fromR1.acquireRead() or fromR2.acquireRead()
+				action {
+					readers := readers + 1
+				}
+			}
+			
+			transition releaseWrite: writing -> none {
+				triggers fromW0.releaseWrite() or fromW1.releaseWrite()
+				action {
+					writing := false
+				}
+			}
+			
+			transition multipleReleaseRead: reading -> reading {
+				guard {
+					readers > 1
+				}
+				triggers fromR0.releaseRead() or fromR1.releaseRead() or fromR2.releaseRead()
+				action {
+					readers := readers - 1
+				}
+			}
+			
+			transition releaseRead: reading -> none {
+				guard {
+					readers == 1
+				}
+				triggers fromR0.releaseRead() or fromR1.releaseRead() or fromR2.releaseRead()
+				action {
+					readers := 0
+				}
+			}
+		}	
+	}
+	capsule Reader {
+		external port~ fromController: ControllerReader
+		external port readThings: ReadAndWriteThings
+		timerPort timer 
+		logPort logger
+		attribute timeoutPeriod = 2000
+		stateMachine {
+			state notReading
+			state reading {
+				entry {
+					send readThings.read()
+					log logger with ''//cell
+				}
+			}
+			
+			transition init: initial -> notReading {}
+			transition getReading: notReading -> notReading {
+				action {
+					send fromController.acquireRead()
+				}
+			}
+			transition goReading: notReading -> reading {
+				triggers fromController.acknowledge()
+				action {
+					inform timer in timeoutPeriod
+				}
+			}
+			transition backToNotReading: reading -> notReading {
+				triggers timeout timer
+				action {
+					send fromController.releaseRead()
+				}
+			}
+		}
+	}
+	capsule Writer {
+		external port~ fromController: ControllerWriter
+		external port writeThings: ReadAndWriteThings
+		timerPort timer
+		attribute timeoutPeriod = 2000
+		stateMachine {
+			state notWriting
+			state writing {
+				entry {
+					send writeThings.write(timeoutPeriod)
+				}
+			}
+			
+			transition init: initial -> notWriting {}
+			transition getWriting: notWriting -> notWriting {
+				action {
+					send fromController.acquireWrite()
+				}
+			}
+			transition goWriting: notWriting -> writing {
+				triggers fromController.acknowledge()
+				action {
+					inform timer in timeoutPeriod
+				}
+			}
+			transition backToNotWriting: writing -> notWriting {
+				triggers timeout timer
+				action {
+					send fromController.releaseWrite()
+				}
+			}
+		}
+	}
+	capsule Database {
+		external port~ readThings: ReadAndWriteThings
+		external port~ writeThings: ReadAndWriteThings
+		logPort logger
+		attribute thing = 1
+		stateMachine {
+			state single
+			transition init: initial -> single {}
+			transition readData: single -> single {
+				triggers readThings.read() 
+				action {
+					log logger with "read: " //+ thing
+				}
+			}
+			transition writeData: single -> single {
+				triggers writeThings.write(data)
+				action {
+					log logger with "original: " //+ thing
+					thing := data
+					log logger with "modified: " //+ thing
+				}
+			}
+		}
+	}
+	
+	protocol ControllerReader {
+		incoming {
+			acquireRead()
+			releaseRead()
+		}
+		outgoing {
+			acknowledge()
+		}
+	}
+	
+	protocol ControllerWriter {
+		incoming {
+			acquireWrite()
+			releaseWrite()
+		}
+		outgoing {
+			acknowledge()
+		}
+	}
+	
+	protocol ReadAndWriteThings {
+		incoming {			
+		}
+		outgoing {
+			read()
+			write(data)
+		}
+	}
+}

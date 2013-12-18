@@ -1,0 +1,20 @@
+model functionIfStatement {
+	root capsule f {
+		operation g() {
+			if (true) {
+				return 2
+			} else {
+				return 1
+			}
+		}
+		stateMachine {
+			transition i: initial -> single {
+				action {
+					var i
+					i := g()
+				}
+			}
+			state single
+		}
+	}
+}

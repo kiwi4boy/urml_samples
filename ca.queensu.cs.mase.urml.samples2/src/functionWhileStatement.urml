@@ -1,0 +1,21 @@
+model Something {
+	root capsule SomeCapsule {
+		operation x() {
+			var a
+			a := 2
+			while (true) {
+				return a + 2
+			}
+		}
+		stateMachine {
+			state single
+			transition i: initial -> single {
+				action {
+					var y
+					y := x()
+					//y := a
+				}	
+			}
+		}
+	}
+}

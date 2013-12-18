@@ -1,0 +1,20 @@
+model Simple {
+	root capsule Simple {
+		logPort hello
+		operation hello() {
+			log hello with "world"
+		}
+		stateMachine {
+			state start {
+				entry {
+					call hello()
+				}
+			}
+			transition init: initial -> start {
+				action {
+					log hello with "Hello"
+				}
+			}
+		}
+	}
+}

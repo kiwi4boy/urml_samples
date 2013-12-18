@@ -1,0 +1,78 @@
+model DoubleStateMachine {
+	
+	root capsule Top {
+		capsuleRef c1: Capsule
+		capsuleRef c2: Capsule2
+	}
+	
+	capsule Capsule { 
+		stateMachine  {
+			transition init1: initial -> one {}
+			transition c: C -> three { guard { false }}
+			transition b: C -> three { guard { false }}
+			transition a: two -> C {}
+			
+			state one {
+				entry {noop}
+				exit {noop}
+				sub stateMachine {
+					transition init2: initial -> two {}
+					//transition init2: initial -> two {}
+					state two { entry{noop} exit{noop}
+						sub stateMachine {
+							transition init3: initial -> three{}
+							state three { entry { noop } exit {noop}
+							}
+						}
+					}
+				}
+				
+			}
+			
+			state A { entry {noop} exit {noop}
+				sub stateMachine {
+					state B { entry {noop} exit {noop}
+						sub stateMachine {
+							state C {entry {noop} exit {noop}}
+						}
+					}
+				}
+			}
+		}
+	}
+	capsule Capsule2 { 
+		stateMachine  {
+			transition init1: initial -> one {}
+			transition c: C -> three { guard { false }}
+			transition b: C -> three { guard { false }}
+			transition a: two -> C {}
+			
+			state one {
+				entry {noop}
+				exit {noop}
+				sub stateMachine {
+					transition init2: initial -> two {}
+					//transition init2: initial -> two {}
+					state two { entry{noop} exit{noop}
+						sub stateMachine {
+							transition init3: initial -> three{}
+							state three { entry { noop } exit {noop}
+							}
+						}
+					}
+				}
+				
+			}
+			
+			state A { entry {noop} exit {noop}
+				sub stateMachine {
+					state B { entry {noop} exit {noop}
+						sub stateMachine {
+							state C {entry {noop} exit {noop}}
+						}
+					}
+				}
+			}
+		}
+	}
+}

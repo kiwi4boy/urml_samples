@@ -1,0 +1,17 @@
+model GoThrough {
+	root capsule Cap {
+		operation x() {
+			noop
+		}
+		stateMachine {
+			state single
+			transition i: initial -> single {
+				action {
+					var c
+					call x()
+					c:=2+1
+				}
+			}
+		}
+	}
+}

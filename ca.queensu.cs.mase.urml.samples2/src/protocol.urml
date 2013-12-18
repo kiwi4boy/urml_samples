@@ -1,0 +1,9 @@
+model proto {
+			root capsule cap {
+				attribute a = true
+			}
+			protocol one {
+				incoming {}
+				outgoing {}
+			}
+		}

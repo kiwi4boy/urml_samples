@@ -1,0 +1,14 @@
+model Model {
+	root capsule Capsule {
+		timerPort timer
+		stateMachine {
+			state first { entry{noop} }
+			state second
+			transition init: initial -> first {
+				triggers timeout timer
+			}
+			transition a: first -> second {}
+			transition b: first -> first {}
+		}
+	}
+}

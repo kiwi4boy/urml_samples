@@ -1,0 +1,15 @@
+model name {
+	root capsule cap {
+		stateMachine {
+			state first
+			state second
+			transition i: initial -> first {}
+			transition a: first -> second {
+				guard {
+					1 == 2
+				}
+			}
+			transition b: first -> first {}
+		}
+	}
+}
