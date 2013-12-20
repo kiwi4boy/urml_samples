@@ -11,31 +11,31 @@ model DiningPhilosophers {
 	root capsule PhilosophersRing {
 		capsuleRef phil0 : Philosopher
 		capsuleRef phil1 : Philosopher
-//		capsuleRef phil2 : Philosopher
-//		capsuleRef phil3 : Philosopher
-//		capsuleRef phil4 : Philosopher
+		capsuleRef phil2 : Philosopher
+		//		capsuleRef phil3 : Philosopher
+		//		capsuleRef phil4 : Philosopher
 		port phil0signer : RingPhilosopherProtocol
 		connector phil0signer and phil0.signer
 		port phil1signer : RingPhilosopherProtocol
 		connector phil1signer and phil1.signer
-//		port phil2signer : RingPhilosopherProtocol
-//		connector phil2signer and phil2.signer
-//		port phil3signer : RingPhilosopherProtocol
-//		connector phil3signer and phil3.signer
-//		port phil4signer : RingPhilosopherProtocol
-//		connector phil4signer and phil4.signer
+		port phil2signer : RingPhilosopherProtocol
+		connector phil2signer and phil2.signer
+		//		port phil3signer : RingPhilosopherProtocol
+		//		connector phil3signer and phil3.signer
+		//		port phil4signer : RingPhilosopherProtocol
+		//		connector phil4signer and phil4.signer
 		capsuleRef fork0 : Fork
 		capsuleRef fork1 : Fork
-//		capsuleRef fork2 : Fork
-//		capsuleRef fork3 : Fork
-//		capsuleRef fork4 : Fork
-		connector phil0.left and fork1.right
-//		connector fork4.left and phil4.right
-//		connector phil4.left and fork3.right
-//		connector fork3.left and phil3.right
-//		connector phil3.left and fork2.right
-//		connector fork2.left and phil2.right
-//		connector phil2.left and fork1.right
+		capsuleRef fork2 : Fork
+		//		capsuleRef fork3 : Fork
+		//		capsuleRef fork4 : Fork
+		connector phil0.left and fork2.right
+		//		connector fork4.left and phil4.right
+		//		connector phil4.left and fork3.right
+		//		connector fork3.left and phil3.right
+		//		connector phil3.left and fork2.right
+		connector fork2.left and phil2.right
+		connector phil2.left and fork1.right
 		connector fork1.left and phil1.right
 		connector phil1.left and fork0.right
 		connector fork0.left and phil0.right
@@ -46,9 +46,10 @@ model DiningPhilosophers {
 				action {
 					send phil0signer.sign(0)
 					send phil1signer.sign(1)
-//					send phil2signer.sign(2)
-//					send phil3signer.sign(3)
-//					send phil4signer.sign(4)
+					send phil2signer.sign(2)
+					//					send phil3signer.sign(3)
+					//					send phil4signer.sign(4)
+
 				}
 			}
 		}
@@ -61,10 +62,18 @@ model DiningPhilosophers {
 		external port ~left : PhilosopherForkProtocol
 		external port ~right : PhilosopherForkProtocol
 		logPort logger
+		attribute leftWaiting := false
+		attribute rightWaiting := false
 		stateMachine {
 			state down {
+				entry {
+					log logger with "down"
+				}
 			}
 			state up {
+				entry {
+					log logger with "up"
+				}
 			}
 			transition init : initial -> down {
 			}
@@ -72,37 +81,60 @@ model DiningPhilosophers {
 				triggers left.up() //  or left.down() or right.down()
 
 				action {
-					log logger with "down -> up (1)"
 					send left.ack()
 				}
 			}
 			transition pickUp2 : down -> up {
 				triggers right.up()
 				action {
-					log logger with "down -> up (2)"
 					send right.ack()
 				}
 			}
-			transition upup : up -> up {
-				triggers left.up() or right.up()
+			transition upUpFromLeft : up -> up {
+				triggers left.up()
 				action {
-					log logger with "up -> up"
-				}	
-			}
-			transition putDown : up -> down {
-				triggers left.down() //  or left.up() or right.up()
-
-				action {
-					log logger with "up -> down (1)"
-					send left.ack()
+					leftWaiting := true
 				}
 			}
-			transition putDown2 : up -> down {
+			transition upUpFromRight : up -> up {
+				triggers right.up()
+				action {
+					rightWaiting := true
+				}
+			}
+			transition putDownForLeftButRemainUpForRight : up -> up {
+				guard {
+					rightWaiting == true
+				}
+				triggers left.down()
+				action {
+					send right.ack()
+					rightWaiting := false
+					log logger with "fork exchanged from left to right"
+				}
+			}
+			transition putDownForLeft : up -> down {
+				guard {
+					rightWaiting == false
+				}
+				triggers left.down()
+			}
+			transition putDownForRightButRemainUpForLeft : up -> up {
+				guard {
+					leftWaiting == true
+				}
 				triggers right.down()
 				action {
-					log logger with "up -> down (2)"
-					send right.ack()
+					send left.ack()
+					leftWaiting := false
+					log logger with "fork exchanged from right to left"
 				}
+			}
+			transition putDownForRight : up -> down {
+				guard {
+					leftWaiting == false
+				}
+				triggers right.down()
 			}
 		}
 	}
@@ -141,17 +173,45 @@ model DiningPhilosophers {
 			state think {
 				entry {
 					inform thinkTimer in thinkTimeout
+					log logger with "thinking"
 				}
 			}
-			state pickUpLeft
-			state pickUpRight
+			state pickingUpFirstFork {
+				entry {
+					log logger with "picking up the first fork"
+				}
+			}
+			state gotFirstFork {
+				entry {
+					log logger with "got the first fork"
+				}
+			}
+			state pickingUpSecondFork {
+				entry {
+					log logger with "picking up the second fork"
+				}
+			}
+			state gotSecondFork {
+				entry {
+					log logger with "got the second fork"
+				}
+			}
 			state eat {
 				entry {
 					inform eatTimer in eatTimeout
+					log logger with "eating"
 				}
 			}
-			state putDownLeft
-			state putDownRight
+			state putDownLeft {
+				entry {
+					log logger with "putting down the first fork"
+				}
+			}
+			state putDownRight {
+				entry {
+					log logger with "putting down the second fork"
+				}
+			}
 			transition init : initial -> start {
 			}
 			transition delayTrans : start -> delay {
@@ -162,62 +222,46 @@ model DiningPhilosophers {
 			}
 			transition start1 : delay -> think {
 				triggers timeout delayTimer
-				action {
-//					call setID(num)
-					log logger with "delay -> think"
-				}
 			}
-			transition tryEat1 : think -> pickUpLeft {
+			transition tryEat1 : think -> pickingUpFirstFork {
 				triggers timeout thinkTimer
 				action {
 					if isEvenPhil() {
 						send right.up()
-						log logger with "(even phil) tryEat1 - picking up right fork"
 					} else  {
 						send left.up()
-						log logger with "(odd phil) tryEat1 - picking up left fork"
 					}
 				}
 			}
-			transition tryEat2 : pickUpLeft -> pickUpRight {
+			transition tryEat11 : pickingUpFirstFork -> gotFirstFork {
 				triggers left.ack() or right.ack()
+			}
+			transition tryEat2 : gotFirstFork -> pickingUpSecondFork {
 				action {
 					if isEvenPhil() {
 						send left.up()
-						log logger with "(even phil) tryEat2 - picking up left fork"
 					} else  {
 						send right.up()
-						log logger with "(odd phil) tryEat2 - picking up right fork"
 					}
 				}
 			}
-			transition goEat : pickUpRight -> eat {
-				triggers right.ack() or left.ack()
-				action {
-					log logger with "goEat"
-				}
+			transition tryEat21 : pickingUpSecondFork -> gotSecondFork {
+				triggers left.ack() or right.ack()
+			}
+			transition goEat : gotSecondFork -> eat {
 			}
 			transition tryThink1 : eat -> putDownLeft {
 				triggers timeout eatTimer
 				action {
 					send left.down()
-					log logger with "eat -> putDownLeft"
 				}
 			}
 			transition tryThink2 : putDownLeft -> putDownRight {
-			//				triggers left.ack() or right.ack()
-
 				action {
-//					send right.down()
-					log logger with "putDownLeft -> putDownRight"
+					send right.down()
 				}
 			}
 			transition goThink : putDownRight -> think {
-			//triggers right.ack() or left.ack()
-
-				action {
-					log logger with "putDownRight -> think"
-				}
 			}
 		}
 	}
