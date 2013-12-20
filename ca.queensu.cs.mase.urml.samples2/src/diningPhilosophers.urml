@@ -12,28 +12,28 @@ model DiningPhilosophers {
 		capsuleRef phil0 : Philosopher
 		capsuleRef phil1 : Philosopher
 		capsuleRef phil2 : Philosopher
-		//		capsuleRef phil3 : Philosopher
-		//		capsuleRef phil4 : Philosopher
+		capsuleRef phil3 : Philosopher
+		capsuleRef phil4 : Philosopher
 		port phil0signer : RingPhilosopherProtocol
 		connector phil0signer and phil0.signer
 		port phil1signer : RingPhilosopherProtocol
 		connector phil1signer and phil1.signer
 		port phil2signer : RingPhilosopherProtocol
 		connector phil2signer and phil2.signer
-		//		port phil3signer : RingPhilosopherProtocol
-		//		connector phil3signer and phil3.signer
-		//		port phil4signer : RingPhilosopherProtocol
-		//		connector phil4signer and phil4.signer
+		port phil3signer : RingPhilosopherProtocol
+		connector phil3signer and phil3.signer
+		port phil4signer : RingPhilosopherProtocol
+		connector phil4signer and phil4.signer
 		capsuleRef fork0 : Fork
 		capsuleRef fork1 : Fork
 		capsuleRef fork2 : Fork
-		//		capsuleRef fork3 : Fork
-		//		capsuleRef fork4 : Fork
-		connector phil0.left and fork2.right
-		//		connector fork4.left and phil4.right
-		//		connector phil4.left and fork3.right
-		//		connector fork3.left and phil3.right
-		//		connector phil3.left and fork2.right
+		capsuleRef fork3 : Fork
+		capsuleRef fork4 : Fork
+		connector phil0.left and fork4.right
+		connector fork4.left and phil4.right
+		connector phil4.left and fork3.right
+		connector fork3.left and phil3.right
+		connector phil3.left and fork2.right
 		connector fork2.left and phil2.right
 		connector phil2.left and fork1.right
 		connector fork1.left and phil1.right
@@ -47,9 +47,8 @@ model DiningPhilosophers {
 					send phil0signer.sign(0)
 					send phil1signer.sign(1)
 					send phil2signer.sign(2)
-					//					send phil3signer.sign(3)
-					//					send phil4signer.sign(4)
-
+					send phil3signer.sign(3)
+					send phil4signer.sign(4)
 				}
 			}
 		}
@@ -78,8 +77,7 @@ model DiningPhilosophers {
 			transition init : initial -> down {
 			}
 			transition pickUp : down -> up {
-				triggers left.up() //  or left.down() or right.down()
-
+				triggers left.up()
 				action {
 					send left.ack()
 				}
