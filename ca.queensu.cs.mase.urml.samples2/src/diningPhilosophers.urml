@@ -2,7 +2,7 @@
  * Dining Philosophers Example
  * October 2012
  * 
- * This example illustrates a story involving three philosophers sharing three forks.
+ * This example illustrates a story involving philosophers sharing forks.
  */
 model DiningPhilosophers {
 /*
@@ -15,14 +15,14 @@ model DiningPhilosophers {
 		capsuleRef phil3 : Philosopher
 		capsuleRef phil4 : Philosopher
 		port phil0signer : RingPhilosopherProtocol
-		connector phil0signer and phil0.signer
 		port phil1signer : RingPhilosopherProtocol
-		connector phil1signer and phil1.signer
 		port phil2signer : RingPhilosopherProtocol
-		connector phil2signer and phil2.signer
 		port phil3signer : RingPhilosopherProtocol
-		connector phil3signer and phil3.signer
 		port phil4signer : RingPhilosopherProtocol
+		connector phil0signer and phil0.signer
+		connector phil1signer and phil1.signer
+		connector phil2signer and phil2.signer
+		connector phil3signer and phil3.signer
 		connector phil4signer and phil4.signer
 		capsuleRef fork0 : Fork
 		capsuleRef fork1 : Fork
@@ -76,31 +76,31 @@ model DiningPhilosophers {
 			}
 			transition init : initial -> down {
 			}
-			transition pickUp : down -> up {
+			transition pickUpFromLeft : down -> up {
 				triggers left.up()
 				action {
 					send left.ack()
 				}
 			}
-			transition pickUp2 : down -> up {
+			transition pickUpFromRight : down -> up {
 				triggers right.up()
 				action {
 					send right.ack()
 				}
 			}
-			transition upUpFromLeft : up -> up {
+			transition pickUpFromLeftButIsAlreadyUp : up -> up {
 				triggers left.up()
 				action {
 					leftWaiting := true
 				}
 			}
-			transition upUpFromRight : up -> up {
+			transition pickUpFromRightButIsAlreadyUp : up -> up {
 				triggers right.up()
 				action {
 					rightWaiting := true
 				}
 			}
-			transition putDownForLeftButRemainUpForRight : up -> up {
+			transition switchFromLeftToRight : up -> up {
 				guard {
 					rightWaiting == true
 				}
@@ -117,7 +117,7 @@ model DiningPhilosophers {
 				}
 				triggers left.down()
 			}
-			transition putDownForRightButRemainUpForLeft : up -> up {
+			transition switchFromRightToLeft : up -> up {
 				guard {
 					leftWaiting == true
 				}
@@ -146,8 +146,8 @@ model DiningPhilosophers {
 	capsule Philosopher {
 		attribute id := -1
 		attribute delayTimeout := 300
-		attribute eatTimeout := 1500
-		attribute thinkTimeout := 1500
+		attribute eatTimeout := 600
+		attribute thinkTimeout := 600
 		external port left : PhilosopherForkProtocol
 		external port right : PhilosopherForkProtocol
 		external port ~signer : RingPhilosopherProtocol
@@ -171,7 +171,7 @@ model DiningPhilosophers {
 			state think {
 				entry {
 					inform thinkTimer in thinkTimeout
-					log logger with "thinking"
+					log logger with "thinking..."
 				}
 			}
 			state pickingUpFirstFork {
@@ -194,34 +194,34 @@ model DiningPhilosophers {
 					log logger with "got the second fork"
 				}
 			}
-			state eat {
+			state eating {
 				entry {
 					inform eatTimer in eatTimeout
-					log logger with "eating"
+					log logger with "eating... om nom nom"
 				}
 			}
-			state putDownLeft {
+			state puttingDownFirstFork {
 				entry {
 					log logger with "putting down the first fork"
 				}
 			}
-			state putDownRight {
+			state puttingDownSecondFork {
 				entry {
 					log logger with "putting down the second fork"
 				}
 			}
 			transition init : initial -> start {
 			}
-			transition delayTrans : start -> delay {
+			transition setPhilID : start -> delay {
 				triggers signer.sign(num)
 				action {
 					call setID(num)
 				}
 			}
-			transition start1 : delay -> think {
+			transition startToThink : delay -> think {
 				triggers timeout delayTimer
 			}
-			transition tryEat1 : think -> pickingUpFirstFork {
+			transition pickUpFirstFork : think -> pickingUpFirstFork {
 				triggers timeout thinkTimer
 				action {
 					if isEvenPhil() {
@@ -231,10 +231,10 @@ model DiningPhilosophers {
 					}
 				}
 			}
-			transition tryEat11 : pickingUpFirstFork -> gotFirstFork {
+			transition waitAckFromFirstFork : pickingUpFirstFork -> gotFirstFork {
 				triggers left.ack() or right.ack()
 			}
-			transition tryEat2 : gotFirstFork -> pickingUpSecondFork {
+			transition pickUpSecondFork : gotFirstFork -> pickingUpSecondFork {
 				action {
 					if isEvenPhil() {
 						send left.up()
@@ -243,23 +243,23 @@ model DiningPhilosophers {
 					}
 				}
 			}
-			transition tryEat21 : pickingUpSecondFork -> gotSecondFork {
+			transition waitAckFromSecondFork : pickingUpSecondFork -> gotSecondFork {
 				triggers left.ack() or right.ack()
 			}
-			transition goEat : gotSecondFork -> eat {
+			transition goEat : gotSecondFork -> eating {
 			}
-			transition tryThink1 : eat -> putDownLeft {
+			transition putDownFirstFork : eating -> puttingDownFirstFork {
 				triggers timeout eatTimer
 				action {
 					send left.down()
 				}
 			}
-			transition tryThink2 : putDownLeft -> putDownRight {
+			transition putDownSecondFork : puttingDownFirstFork -> puttingDownSecondFork {
 				action {
 					send right.down()
 				}
 			}
-			transition goThink : putDownRight -> think {
+			transition goThink : puttingDownSecondFork -> think {
 			}
 		}
 	}

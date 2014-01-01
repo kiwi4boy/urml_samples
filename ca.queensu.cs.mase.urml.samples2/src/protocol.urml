@@ -1,6 +1,6 @@
 model proto {
 			root capsule cap {
-				attribute a = true
+				attribute a := true
 			}
 			protocol one {
 				incoming {}

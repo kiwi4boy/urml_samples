@@ -36,14 +36,14 @@ model SampleModel {
 		external port storageIn : StorageInProtocol
 		external port storageOut : StorageOutProtocol
 		logPort logger
-		attribute size = 0
-		attribute N = 10
+		attribute size := 0
+		attribute N := 10
 		operation createSite() {
 			log logger with 'A storage site has been created'
 			return 0
 		}
 		operation insertPiece(pieceId) {
-			log logger with 'A piece with ' :: pieceId :: ' has been inserted'
+			log logger with 'A piece with ' ^ pieceId ^ ' has been inserted'
 
 		}
 		operation remove() {

@@ -27,8 +27,8 @@ model widgetProduction {
 		timerPort StartTimer
 		timerPort StopTimer
 		logPort CSLog
-		attribute startUpDelay = 2000
-		attribute systemStopTime = 3000
+		attribute startUpDelay := 2000
+		attribute systemStopTime := 3000
 		stateMachine {
 			transition init: initial -> startup {}
 			state startup  { 
