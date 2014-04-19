@@ -5,7 +5,7 @@ model Simple {
 			log hello with "world"
 		}
 		stateMachine {
-			state start {
+			final state start {
 				entry {
 					call hello()
 				}

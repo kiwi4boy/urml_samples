@@ -4,8 +4,7 @@ model simple2 {
 			state state1 
 			transition name: initial -> state1 {
 				action {
-					var varName
-					varName := 1
+					var varName := 1
 				}
 			} 
 		}

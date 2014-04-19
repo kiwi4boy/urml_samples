@@ -1,19 +1,19 @@
 model Something {
 	root capsule SomeCapsule {
+		logPort logger
 		operation x() {
-			var a
-			a := 2
+			var a := 2
 			while (true) {
 				return a + 2
 			}
 		}
 		stateMachine {
-			state single
+			final state single
 			transition i: initial -> single {
 				action {
-					var y
-					y := x()
+					var y := x()
 					//y := a
+					log logger with y
 				}	
 			}
 		}

@@ -1,8 +1,8 @@
 model DoubleStateMachine {
 	
 	root capsule Top {
-		capsuleRef c1: Capsule
-		capsuleRef c2: Capsule2
+		capsuleInstance c1: Capsule
+		capsuleInstance c2: Capsule2
 	}
 	
 	capsule Capsule { 

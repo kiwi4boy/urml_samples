@@ -1,14 +1,31 @@
 model Model {
 	root capsule Capsule {
-		timerPort timer
+		logPort logger
+		timerPort t1
+		timerPort t2
 		stateMachine {
-			state first { entry{noop} }
+			state first 
 			state second
-			transition init: initial -> first {
-				triggers timeout timer
+			transition init : initial -> first {
+				action {
+					inform t1 in 2000
+					inform t2 in 4000
+				}
 			}
-			transition a: first -> second {}
-			transition b: first -> first {}
+			transition a : first -> first {
+				triggeredBy timeout t1
+				action {
+					inform t1 in 2000
+					log logger with "t1 executed"
+				}
+			}
+			transition b : first -> first {
+				triggeredBy timeout t2
+				action {
+					inform t2 in 3500
+					log logger with "t2 executed"
+				}
+			}
 		}
 	}
 }
